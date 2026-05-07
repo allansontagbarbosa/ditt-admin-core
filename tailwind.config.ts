@@ -20,8 +20,8 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#00C896",
+          foreground: "#FFFFFF",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -62,6 +62,9 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["Manrope", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

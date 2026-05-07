@@ -1,27 +1,39 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { Toaster } from "sonner";
+import { useStaffAuth } from "@/hooks/useStaffAuth";
+import Login from "@/pages/Login";
+import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const qc = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isStaff, loading } = useStaffAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
+  if (!isStaff) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={qc}>
       <BrowserRouter>
+        <Toaster richColors position="top-right" />
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+                  Dashboard placeholder — vem no PROMPT 7
+                </div>
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+    </QueryClientProvider>
+  );
+}
