@@ -1,0 +1,4 @@
+project_id = "cgsdnvuigolxwzfmnykk"
+
+[functions.criar-customer-portal-session]
+verify_jwt = true
