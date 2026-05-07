@@ -5,6 +5,7 @@ import { useStaffAuth } from "@/hooks/useStaffAuth";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
+import Dashboard from "@/pages/Dashboard";
 
 const qc = new QueryClient();
 
@@ -26,9 +27,7 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-                  Dashboard placeholder — vem no PROMPT 7
-                </div>
+                <Dashboard />
               </ProtectedRoute>
             }
           />
