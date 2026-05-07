@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, UserCog } from "lucide-react";
-import { useClienteDetalhe } from "@/hooks/useClienteDetalhe";
+import { ArrowLeft, UserCog, CreditCard, Send } from "lucide-react";
+import { useClienteDetalhe, useCriarNota } from "@/hooks/useClienteDetalhe";
+import { toast } from "sonner";
 import { fmtBRL, planoCor, statusCor } from "@/lib/clientes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -183,9 +184,86 @@ function TabAssinatura({ data }: any) {
   );
 }
 
-function TabNotas({ data: _data, empresaId: _empresaId }: any) {
-  return <p className="text-sm text-muted-foreground">PROMPT 13.</p>;
+function TabNotas({ data, empresaId }: any) {
+  const [texto, setTexto] = useState("");
+  const criar = useCriarNota();
+  const enviar = async () => {
+    if (!texto.trim()) return;
+    try {
+      await criar.mutateAsync({ empresaId, texto });
+      setTexto("");
+      toast.success("Nota adicionada");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 rounded-lg border bg-card p-3">
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Adicionar nota..."
+          rows={2}
+          className="flex-1 resize-none bg-transparent text-sm outline-none"
+        />
+        <button
+          onClick={enviar}
+          disabled={criar.isPending || !texto.trim()}
+          className="flex items-center gap-1 self-end rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+        >
+          <Send className="h-3 w-3" /> Enviar
+        </button>
+      </div>
+      {data.notas.length === 0 ? (
+        <p className="py-4 text-center text-xs text-muted-foreground">
+          Sem notas ainda.
+        </p>
+      ) : (
+        data.notas.map((n: any) => (
+          <div key={n.id} className="rounded-lg border bg-card p-3 text-sm">
+            <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
+              <span className="font-medium">{n.autor_nome}</span>
+              <span>{new Date(n.criado_em).toLocaleString("pt-BR")}</span>
+            </div>
+            <p className="whitespace-pre-wrap">{n.texto}</p>
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
-function TabAtividade({ data: _data }: any) {
-  return <p className="text-sm text-muted-foreground">PROMPT 13.</p>;
+
+function TabAtividade({ data }: any) {
+  if (data.eventos_billing.length === 0)
+    return (
+      <p className="py-4 text-center text-xs text-muted-foreground">
+        Sem eventos de billing.
+      </p>
+    );
+  return (
+    <div className="space-y-2">
+      {data.eventos_billing.map((e: any, i: number) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm"
+        >
+          <CreditCard className="h-4 w-4 shrink-0 text-primary" />
+          <div className="flex-1">
+            <div className="flex justify-between">
+              <span className="font-medium">{e.tipo}</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(e.criado_em).toLocaleString("pt-BR")}
+              </span>
+            </div>
+            {e.valor_centavos != null && (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {fmtBRL(e.valor_centavos)}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
