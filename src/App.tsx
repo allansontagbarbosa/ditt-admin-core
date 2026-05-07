@@ -7,6 +7,7 @@ import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Clientes from "@/pages/Clientes";
+import ClienteDetalhe from "@/pages/ClienteDetalhe";
 
 const qc = new QueryClient();
 
@@ -37,6 +38,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Clientes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clientes/:id"
+            element={
+              <ProtectedRoute>
+                <ClienteDetalhe />
               </ProtectedRoute>
             }
           />
