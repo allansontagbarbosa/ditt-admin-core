@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
+import Layout from "@/components/Layout";
 
 const qc = new QueryClient();
 
@@ -11,7 +12,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isStaff, loading } = useStaffAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!isStaff) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+  return <Layout>{children}</Layout>;
 }
 
 export default function App() {
