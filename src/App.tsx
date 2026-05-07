@@ -6,6 +6,7 @@ import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
+import Clientes from "@/pages/Clientes";
 
 const qc = new QueryClient();
 
@@ -28,6 +29,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clientes"
+            element={
+              <ProtectedRoute>
+                <Clientes />
               </ProtectedRoute>
             }
           />
