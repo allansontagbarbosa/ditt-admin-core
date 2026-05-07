@@ -1,25 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
 import { toast } from "sonner";
 
 export default function Login() {
-  const { signIn } = useStaffAuth();
+  const { signIn, isStaff, loading } = useStaffAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && isStaff) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, isStaff, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     try {
       await signIn(email, pwd);
-      navigate("/");
-    } catch {
-      toast.error("Login inválido");
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Login inválido");
+      setSubmitting(false);
     }
   };
 
@@ -51,10 +55,10 @@ export default function Login() {
           />
           <button
             type="submit"
-            disabled={loading}
+            disabled={submitting}
             className="w-full h-10 rounded bg-primary text-primary-foreground font-medium disabled:opacity-50"
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {submitting ? "Entrando..." : "Entrar"}
           </button>
           <p className="text-xs text-muted-foreground text-center pt-2">
             Acesso restrito à equipe Ditt.
