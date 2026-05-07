@@ -39,3 +39,18 @@ export function useAtividadeRecente(limit = 20) {
     staleTime: 60_000,
   });
 }
+
+export interface SerieMRR { mes: string; mes_label: string; mrr_centavos: number; }
+
+export function useMrrSerie() {
+  return useQuery({
+    queryKey: ["admin-mrr-serie"],
+    queryFn: async () => {
+      const { data, error } = await supabase.schema("admin" as any).rpc("mrr_serie_12m" as any);
+      if (error) throw error;
+      const p = data as any;
+      if (!p?.success) throw new Error(p?.error ?? "Falha");
+      return (p.serie ?? []) as SerieMRR[];
+    },
+  });
+}
