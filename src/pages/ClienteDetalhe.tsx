@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, UserCog } from "lucide-react";
 import { useClienteDetalhe } from "@/hooks/useClienteDetalhe";
-import { planoCor, statusCor } from "@/lib/clientes";
+import { fmtBRL, planoCor, statusCor } from "@/lib/clientes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -110,16 +110,82 @@ export default function ClienteDetalhe() {
   );
 }
 
-// Stubs — substituídos no PROMPT 12
-function TabGeral({ data: _data }: any) {
-  return <p className="text-sm text-muted-foreground">Substituído pelo PROMPT 12.</p>;
+function TabGeral({ data }: any) {
+  const k = data.kpis_uso;
+  const items = [
+    { l: "OSs total", v: k.qtd_oss_total },
+    { l: "OSs (30d)", v: k.qtd_oss_30d },
+    { l: "Funcionários", v: k.qtd_funcionarios },
+    { l: "Usuários app", v: k.qtd_usuarios },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {items.map((it, i) => (
+          <div key={i} className="rounded-xl border bg-card p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {it.l}
+            </p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{it.v}</p>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border bg-card p-5 text-sm">
+        <span className="text-muted-foreground">Última atividade: </span>
+        <span className="font-medium">
+          {k.ultima_atividade
+            ? new Date(k.ultima_atividade).toLocaleString("pt-BR")
+            : "Sem registro"}
+        </span>
+      </div>
+    </div>
+  );
 }
-function TabAssinatura({ data: _data }: any) {
-  return <p className="text-sm text-muted-foreground">Substituído pelo PROMPT 12.</p>;
+
+function TabAssinatura({ data }: any) {
+  const a = data.assinatura;
+  const p = data.plano;
+  if (!a)
+    return (
+      <p className="text-sm text-muted-foreground">Sem assinatura registrada.</p>
+    );
+  const dt = (s: string | null) =>
+    s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+  const linhas: Array<[string, string]> = [
+    ["Plano", p?.nome ?? "—"],
+    ["Status", a.status],
+    ["MRR", fmtBRL(a.mrr_centavos)],
+    ["Trial", `${dt(a.trial_iniciado_em)} → ${dt(a.trial_termina_em)}`],
+    ["Ativada em", dt(a.ativada_em)],
+    ["Próximo ciclo", dt(a.proximo_ciclo_em)],
+    ["Cancelada em", dt(a.cancelada_em)],
+    ...(a.motivo_cancelamento
+      ? ([["Motivo", a.motivo_cancelamento]] as Array<[string, string]>)
+      : []),
+    ["Stripe customer", a.stripe_customer_id ?? "—"],
+    ["Stripe sub", a.stripe_subscription_id ?? "—"],
+  ];
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card">
+      {linhas.map(([l, v], i) => (
+        <div
+          key={i}
+          className={cn(
+            "flex items-center justify-between gap-4 px-5 py-3 text-sm",
+            i > 0 && "border-t",
+          )}
+        >
+          <span className="text-muted-foreground">{l}</span>
+          <span className="font-medium">{v}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
+
 function TabNotas({ data: _data, empresaId: _empresaId }: any) {
-  return <p className="text-sm text-muted-foreground">Substituído pelo PROMPT 12.</p>;
+  return <p className="text-sm text-muted-foreground">PROMPT 13.</p>;
 }
 function TabAtividade({ data: _data }: any) {
-  return <p className="text-sm text-muted-foreground">Substituído pelo PROMPT 12.</p>;
+  return <p className="text-sm text-muted-foreground">PROMPT 13.</p>;
 }
