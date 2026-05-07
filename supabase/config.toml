@@ -1,0 +1,4 @@
+project_id = "ditt-admin-core"
+
+[functions.criar-customer-portal-session]
+verify_jwt = true
