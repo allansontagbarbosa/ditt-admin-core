@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
 import { toast } from "sonner";
+import { DebugAuth } from "@/components/DebugAuth";
 
 export default function Login() {
   const { signIn, isStaff, loading } = useStaffAuth();
@@ -65,6 +66,7 @@ export default function Login() {
           </p>
         </form>
       </div>
+      <DebugAuth />
     </div>
   );
 }
