@@ -1,39 +1,79 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export interface StaffUser {
-  id: string;
-  user_id: string;
-  nome: string;
-  email: string;
-  role: "owner" | "suporte" | "vendas" | "financeiro";
-}
-
 export function useStaffAuth() {
-  const [staff, setStaff] = useState<StaffUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isStaff, setIsStaff] = useState<boolean>(false);
+  const [staffData, setStaffData] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setStaff(null);
-        setLoading(false);
-        return;
+    let mounted = true;
+
+    const check = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (mounted) {
+            setIsStaff(false);
+            setStaffData(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const { data: rpcResult, error: rpcError } = await supabase.rpc("is_staff" as any);
+        const userIsStaff = rpcResult === true;
+
+        if (rpcError) {
+          console.error("[useStaffAuth] is_staff RPC error:", rpcError);
+        }
+
+        let staff = null;
+        if (userIsStaff) {
+          const fetchUrl = `${import.meta.env.VITE_SUPABASE_URL || "https://cgsdnvuigolxwzfmnykk.supabase.co"}/rest/v1/usuarios_internos?user_id=eq.${session.user.id}&ativo=eq.true&select=*`;
+          const r = await fetch(fetchUrl, {
+            headers: {
+              "apikey": "sb_publishable_8--rytxIxWlNNp2T9IUFsw_ems9dlOH",
+              "Authorization": `Bearer ${session.access_token}`,
+              "Accept-Profile": "admin",
+            },
+          });
+          if (r.ok) {
+            const arr = await r.json();
+            staff = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+          } else {
+            console.error("[useStaffAuth] staff fetch failed:", r.status, await r.text());
+          }
+        }
+
+        if (mounted) {
+          setIsStaff(userIsStaff);
+          setStaffData(staff);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("[useStaffAuth] check error:", err);
+        if (mounted) {
+          setIsStaff(false);
+          setStaffData(null);
+          setLoading(false);
+        }
       }
-      const { data } = await supabase
-        .schema("admin" as any)
-        .from("usuarios_internos" as any)
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("ativo", true)
-        .maybeSingle();
-      setStaff((data as any) ?? null);
-      setLoading(false);
     };
-    checkAuth();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => checkAuth());
-    return () => sub.subscription.unsubscribe();
+
+    check();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      if (mounted) {
+        setLoading(true);
+        check();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -43,8 +83,9 @@ export function useStaffAuth() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setStaff(null);
+    setIsStaff(false);
+    setStaffData(null);
   };
 
-  return { staff, loading, signIn, signOut, isStaff: !!staff };
+  return { isStaff, staff: staffData, loading, signIn, signOut };
 }
