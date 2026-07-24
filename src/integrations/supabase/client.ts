@@ -2,8 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// NOTE: This project uses an external Supabase backend (schema `admin`,
+// usuarios_internos, edge functions Stripe). Do NOT switch to Lovable Cloud
+// env vars — that breaks staff auth and every RPC/edge function.
+const SUPABASE_URL = "https://cgsdnvuigolxwzfmnykk.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8--rytxIxWlNNp2T9IUFsw_ems9dlOH";
 
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -38,6 +41,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
   },
   auth: {
+    storageKey: "ditt-admin-auth",
     storage: typeof window !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
