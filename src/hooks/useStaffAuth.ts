@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = "https://cgsdnvuigolxwzfmnykk.supabase.co";
-const SUPABASE_KEY = "sb_publishable_8--rytxIxWlNNp2T9IUFsw_ems9dlOH";
+type StaffProfile = {
+  user_id: string;
+  email: string;
+  nome: string;
+  role: "admin" | "moderator";
+};
 
 export function useStaffAuth() {
   const [isStaff, setIsStaff] = useState<boolean>(false);
-  const [staffData, setStaffData] = useState<any>(null);
+  const [staffData, setStaffData] = useState<StaffProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -14,8 +18,9 @@ export function useStaffAuth() {
 
     const check = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
           if (mounted) {
             setIsStaff(false);
             setStaffData(null);
@@ -24,24 +29,27 @@ export function useStaffAuth() {
           return;
         }
 
-        const r = await fetch(
-          `${SUPABASE_URL}/rest/v1/usuarios_internos?user_id=eq.${session.user.id}&ativo=eq.true&select=*`,
-          {
-            headers: {
-              "apikey": SUPABASE_KEY,
-              "Authorization": `Bearer ${session.access_token}`,
-              "Accept-Profile": "admin",
-            },
-          }
-        );
+        const { data: role, error: roleError } = await supabase
+          .from("user_roles" as any)
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "moderator"])
+          .order("role", { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-        let staff = null;
-        if (r.ok) {
-          const arr = await r.json();
-          staff = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
-        } else {
-          console.error("[useStaffAuth] staff fetch falhou:", r.status, await r.text());
-        }
+        if (roleError) throw roleError;
+
+        const staff = role
+          ? {
+              user_id: user.id,
+              email: user.email ?? "",
+              nome:
+                (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
+                (user.email ? user.email.split("@")[0] : "Staff"),
+              role: (role as { role: "admin" | "moderator" }).role,
+            }
+          : null;
 
         if (mounted) {
           setIsStaff(!!staff);
@@ -74,7 +82,10 @@ export function useStaffAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     if (error) throw error;
   };
 

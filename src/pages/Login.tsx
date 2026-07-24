@@ -10,18 +10,25 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [authAttempted, setAuthAttempted] = useState(false);
 
   useEffect(() => {
     if (!loading && isStaff) {
       navigate("/", { replace: true });
     }
-  }, [loading, isStaff, navigate]);
+    if (!loading && authAttempted && !isStaff) {
+      toast.error("Usuário autenticado, mas sem acesso interno ativo.");
+      setSubmitting(false);
+      setAuthAttempted(false);
+    }
+  }, [authAttempted, loading, isStaff, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       await signIn(email, pwd);
+      setAuthAttempted(true);
     } catch (err: any) {
       toast.error(err?.message ?? "Login inválido");
       setSubmitting(false);
@@ -56,7 +63,7 @@ export default function Login() {
           />
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || loading}
             className="w-full h-10 rounded bg-primary text-primary-foreground font-medium disabled:opacity-50"
           >
             {submitting ? "Entrando..." : "Entrar"}
