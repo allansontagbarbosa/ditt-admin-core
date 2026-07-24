@@ -56,7 +56,7 @@ export default function Login() {
           />
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || loading}
             className="w-full h-10 rounded bg-primary text-primary-foreground font-medium disabled:opacity-50"
           >
             {submitting ? "Entrando..." : "Entrar"}
