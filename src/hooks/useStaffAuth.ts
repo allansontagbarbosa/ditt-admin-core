@@ -40,14 +40,15 @@ export function useStaffAuth() {
 
         if (roleError) throw roleError;
 
-        const staff = role
+        const staffRole = role as unknown as { role: "admin" | "moderator" } | null;
+        const staff = staffRole
           ? {
               user_id: user.id,
               email: user.email ?? "",
               nome:
                 (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
                 (user.email ? user.email.split("@")[0] : "Staff"),
-              role: (role as { role: "admin" | "moderator" }).role,
+              role: staffRole.role,
             }
           : null;
 
