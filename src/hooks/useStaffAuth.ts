@@ -2,35 +2,35 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+type StaffRole = "owner" | "suporte" | "vendas" | "financeiro";
+
 type StaffProfile = {
   user_id: string;
   email: string;
   nome: string;
-  role: "admin" | "moderator";
+  role: StaffRole;
 };
 
 async function getStaffProfile(user: User): Promise<StaffProfile | null> {
-  const { data: role, error: roleError } = await supabase
-    .from("user_roles" as any)
-    .select("role")
+  const { data, error } = await supabase
+    .schema("admin" as any)
+    .from("usuarios_internos" as any)
+    .select("user_id,email,nome,role,ativo")
     .eq("user_id", user.id)
-    .in("role", ["admin", "moderator"])
-    .order("role", { ascending: true })
-    .limit(1)
+    .eq("ativo", true)
     .maybeSingle();
 
-  if (roleError) throw roleError;
-
-  const staffRole = role as unknown as { role: "admin" | "moderator" } | null;
-  if (!staffRole) return null;
+  if (error) throw error;
+  const row = data as unknown as
+    | { user_id: string; email: string; nome: string; role: StaffRole; ativo: boolean }
+    | null;
+  if (!row) return null;
 
   return {
-    user_id: user.id,
-    email: user.email ?? "",
-    nome:
-      (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
-      (user.email ? user.email.split("@")[0] : "Staff"),
-    role: staffRole.role,
+    user_id: row.user_id,
+    email: row.email ?? user.email ?? "",
+    nome: row.nome || (user.email ? user.email.split("@")[0] : "Staff"),
+    role: row.role,
   };
 }
 
