@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
 import Login from "@/pages/Login";
-import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
@@ -26,7 +25,6 @@ export default function App() {
         <Toaster richColors position="top-right" />
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/"
             element={

@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = "https://cgsdnvuigolxwzfmnykk.supabase.co";
-const SUPABASE_KEY = "sb_publishable_8--rytxIxWlNNp2T9IUFsw_ems9dlOH";
-
 type StaffProfile = {
   user_id: string;
   email: string;
@@ -13,30 +10,27 @@ type StaffProfile = {
 };
 
 async function getStaffProfile(user: User): Promise<StaffProfile | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) return null;
+  const { data: role, error: roleError } = await supabase
+    .from("user_roles" as any)
+    .select("role")
+    .eq("user_id", user.id)
+    .in("role", ["admin", "moderator"])
+    .order("role", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/usuarios_internos?select=user_id,email,nome,role,ativo&user_id=eq.${user.id}&ativo=eq.true&limit=1`,
-    {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${token}`,
-        "Accept-Profile": "admin",
-      },
-    }
-  );
+  if (roleError) throw roleError;
 
-  if (!res.ok) return null;
-  const rows = (await res.json()) as Array<StaffProfile & { ativo: boolean }>;
-  if (!rows.length) return null;
-  const r = rows[0];
+  const staffRole = role as unknown as { role: "admin" | "moderator" } | null;
+  if (!staffRole) return null;
+
   return {
-    user_id: r.user_id,
-    email: r.email,
-    nome: r.nome ?? (user.email?.split("@")[0] ?? "Staff"),
-    role: r.role,
+    user_id: user.id,
+    email: user.email ?? "",
+    nome:
+      (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
+      (user.email ? user.email.split("@")[0] : "Staff"),
+    role: staffRole.role,
   };
 }
 
