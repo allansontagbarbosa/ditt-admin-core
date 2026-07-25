@@ -13,7 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-admin-secret",
+    "authorization, x-client-info, apikey, content-type, x-admin-panel-secret, x-admin-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -34,9 +34,9 @@ Deno.serve(async (req) => {
 
   try {
     const expected = Deno.env.get("ADMIN_PANEL_SECRET");
-    const provided = req.headers.get("x-admin-secret");
+    const provided = req.headers.get("x-admin-panel-secret") ?? req.headers.get("x-admin-secret");
     if (!expected || !provided || provided !== expected) {
-      return json({ error: "unauthorized" }, 401);
+      return json({ error: "Unauthorized" }, 401);
     }
 
     const body = await req.json().catch(() => ({}));

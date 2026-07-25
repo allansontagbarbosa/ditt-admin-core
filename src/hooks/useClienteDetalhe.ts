@@ -19,6 +19,7 @@ export function useClienteDetalhe(empresaId: string) {
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return p as DetalheCompleto & { success: boolean };
     },
+    retry: false,
   });
 }
 
@@ -29,6 +30,7 @@ export function useCriarNota() {
       const p: any = await callAdmin("criar_nota", { p_empresa_id: empresaId, p_texto: texto });
       if (!p?.success) throw new Error(p?.error ?? "Falha");
     },
+    retry: false,
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ["admin-cliente-detalhe", vars.empresaId] }),
   });
 }

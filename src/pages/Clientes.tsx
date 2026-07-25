@@ -18,7 +18,7 @@ const FILTROS = [
 export default function Clientes() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todas");
-  const { data: clientes = [], isLoading } = useClientes(
+  const { data: clientes = [], isLoading, isError, error } = useClientes(
     filtro === "todas" ? undefined : filtro,
     busca,
   );
@@ -91,7 +91,19 @@ export default function Clientes() {
                 </td>
               </tr>
             )}
-            {!isLoading && clientes.length === 0 && (
+            {isError && (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <div className="mx-auto max-w-xl rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left">
+                    <p className="font-medium text-destructive">Conexão administrativa bloqueada</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {error instanceof Error ? error.message : "Falha ao conectar ao backend principal."}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {!isLoading && !isError && clientes.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                   Nenhuma empresa encontrada.

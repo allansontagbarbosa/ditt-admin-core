@@ -18,7 +18,18 @@ export default function ClienteDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [tab, setTab] = useState("geral");
-  const { data, isLoading } = useClienteDetalhe(id!);
+  const { data, isLoading, isError, error } = useClienteDetalhe(id!);
+
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+        <h1 className="text-lg font-semibold text-destructive">Conexão administrativa bloqueada</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error instanceof Error ? error.message : "Falha ao conectar ao backend principal."}
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading || !data)
     return <div className="text-muted-foreground">Carregando...</div>;
