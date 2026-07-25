@@ -41,7 +41,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     storageKey: "ditt-admin-auth",
     storage: typeof window !== 'undefined' ? localStorage : undefined,
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: false,
+    autoRefreshToken: false,
   }
 });
+
+// Limpa qualquer JWT antigo que ficou no localStorage (backend Cloud / sessão anterior).
+// Sem isso o supabase-js anexa Bearer inválido em toda chamada → 401 "unrecognized kid".
+if (typeof window !== "undefined") {
+  try {
+    window.localStorage.removeItem("ditt-admin-auth");
+    window.localStorage.removeItem("sb-cgsdnvuigolxwzfmnykk-auth-token");
+    window.localStorage.removeItem("sb-icxfnkipwcyyeuposgrt-auth-token");
+  } catch {}
+}
