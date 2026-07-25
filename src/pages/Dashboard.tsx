@@ -33,9 +33,11 @@ const TIPO: Record<string, { texto: string; cor: string }> = {
 };
 
 export default function Dashboard() {
-  const { data: kpis, isLoading } = useKpisDashboard();
+  const { data: kpis, isLoading, isError, error } = useKpisDashboard();
   const { data: eventos = [] } = useAtividadeRecente(8);
   const { data: serie = [] } = useMrrSerie();
+
+  if (isError) return <AdminConnectionError error={error} />;
 
   if (isLoading || !kpis)
     return <div className="text-muted-foreground">Carregando...</div>;
@@ -299,6 +301,19 @@ function FunilRow({
           style={{ width: `${w}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function AdminConnectionError({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : "Falha ao conectar ao backend principal.";
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+      <h1 className="text-lg font-semibold text-destructive">Conexão administrativa bloqueada</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+      <p className="mt-3 text-sm text-muted-foreground">
+        Configure o mesmo valor em <span className="font-medium text-foreground">ADMIN_PANEL_SECRET</span> no backend principal e em <span className="font-medium text-foreground">VITE_ADMIN_PANEL_SECRET</span> neste painel.
+      </p>
     </div>
   );
 }
