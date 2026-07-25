@@ -103,7 +103,7 @@ export default function Clientes() {
                 </td>
               </tr>
             )}
-            {!isLoading && clientes.length === 0 && (
+            {!isLoading && !isError && clientes.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                   Nenhuma empresa encontrada.
