@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { callAdmin } from "@/lib/adminProxy";
 
 export interface KpisDashboard {
   mrr_centavos: number; mrr_anterior_centavos: number; arr_centavos: number;
@@ -16,9 +16,7 @@ export function useKpisDashboard() {
   return useQuery({
     queryKey: ["admin-kpis"],
     queryFn: async () => {
-      const { data, error } = await supabase.schema("admin" as any).rpc("kpis_dashboard" as any);
-      if (error) throw error;
-      const p = data as any;
+      const p: any = await callAdmin("kpis_dashboard");
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return p as KpisDashboard & { success: boolean };
     },
@@ -30,9 +28,7 @@ export function useAtividadeRecente(limit = 20) {
   return useQuery({
     queryKey: ["admin-atividade", limit],
     queryFn: async () => {
-      const { data, error } = await supabase.schema("admin" as any).rpc("atividade_recente" as any, { p_limit: limit });
-      if (error) throw error;
-      const p = data as any;
+      const p: any = await callAdmin("atividade_recente", { p_limit: limit });
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return (p.eventos ?? []) as EventoAtividade[];
     },
@@ -46,9 +42,7 @@ export function useMrrSerie() {
   return useQuery({
     queryKey: ["admin-mrr-serie"],
     queryFn: async () => {
-      const { data, error } = await supabase.schema("admin" as any).rpc("mrr_serie_12m" as any);
-      if (error) throw error;
-      const p = data as any;
+      const p: any = await callAdmin("mrr_serie_12m");
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return (p.serie ?? []) as SerieMRR[];
     },
