@@ -26,7 +26,7 @@ export async function callAdmin<T = any>(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-admin-secret": PANEL_SECRET,
+      "x-admin-panel-secret": PANEL_SECRET,
     },
     body: JSON.stringify({ action, params }),
   });
