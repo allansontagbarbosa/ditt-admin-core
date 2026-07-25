@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { callAdmin } from "@/lib/adminProxy";
 
 export interface DetalheCompleto {
   empresa: { id: string; nome: string; criada_em: string };
@@ -15,9 +15,7 @@ export function useClienteDetalhe(empresaId: string) {
     queryKey: ["admin-cliente-detalhe", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data, error } = await supabase.schema("admin" as any).rpc("detalhe_empresa" as any, { p_empresa_id: empresaId });
-      if (error) throw error;
-      const p = data as any;
+      const p: any = await callAdmin("detalhe_empresa", { p_empresa_id: empresaId });
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return p as DetalheCompleto & { success: boolean };
     },
@@ -28,9 +26,7 @@ export function useCriarNota() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ empresaId, texto }: { empresaId: string; texto: string }) => {
-      const { data, error } = await supabase.schema("admin" as any).rpc("criar_nota" as any, { p_empresa_id: empresaId, p_texto: texto });
-      if (error) throw error;
-      const p = data as any;
+      const p: any = await callAdmin("criar_nota", { p_empresa_id: empresaId, p_texto: texto });
       if (!p?.success) throw new Error(p?.error ?? "Falha");
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ["admin-cliente-detalhe", vars.empresaId] }),
