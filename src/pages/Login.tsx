@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 
@@ -10,6 +12,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!loading && isStaff) {
@@ -26,6 +29,27 @@ export default function Login() {
       toast.error(err?.message ?? "Login inválido");
       setSubmitting(false);
     }
+  };
+
+  const requestPasswordReset = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Informe o email antes de redefinir a senha.");
+      return;
+    }
+
+    setResetting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetting(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Enviamos um link para redefinir sua senha.");
   };
 
   return (
@@ -54,13 +78,22 @@ export default function Login() {
             required
             className="w-full h-10 px-3 rounded border border-input bg-background"
           />
-          <button
+          <Button
             type="submit"
             disabled={submitting || loading}
-            className="w-full h-10 rounded bg-primary text-primary-foreground font-medium disabled:opacity-50"
+            className="w-full h-10"
           >
             {submitting ? "Entrando..." : "Entrar"}
-          </button>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={resetting || submitting}
+            onClick={requestPasswordReset}
+            className="w-full h-9 text-xs"
+          >
+            {resetting ? "Enviando..." : "Esqueci minha senha"}
+          </Button>
           <p className="text-xs text-muted-foreground text-center pt-2">
             Acesso restrito à equipe Ditt.
           </p>
