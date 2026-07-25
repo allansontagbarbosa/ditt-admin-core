@@ -50,7 +50,15 @@ export async function callAdmin<T = any>(
   });
 
   const text = await res.text();
-  const json = text ? JSON.parse(text) : {};
+  const json = text
+    ? (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { error: text };
+        }
+      })()
+    : {};
   if (!res.ok || json?.error) {
     if (res.status === 401) {
       throw new AdminProxyError(
