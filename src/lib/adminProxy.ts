@@ -46,7 +46,7 @@ export async function callAdmin<T = any>(
       "x-admin-panel-secret": PANEL_SECRET,
       "x-admin-secret": PANEL_SECRET,
     },
-    body: JSON.stringify({ action, params }),
+    body: JSON.stringify({ fn: action, action, params }),
   });
 
   const text = await res.text();
