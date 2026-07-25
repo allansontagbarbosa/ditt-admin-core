@@ -1,68 +1,60 @@
-## Objetivo
-Manter o login master local no painel e ainda assim conseguir chamar as RPCs `admin.*` do backend principal, criando uma **Edge Function proxy** no backend principal que usa `service_role` e valida um shared secret.
+## Contexto
 
-## Arquitetura
+A edge function `admin-proxy` (no backend principal `cgsdnvuigolxwzfmnykk`) já valida o `x-admin-panel-secret` corretamente. O problema é diferente: as RPCs no schema `admin` fazem internamente algo como:
 
-```text
-ditt-admin (frontend)                Backend principal
-──────────────────────                ─────────────────
- login master local (.env) ─────┐
-                                │
- fetch('/functions/v1/          │      Edge Function: admin-proxy
-   admin-proxy',                ├────▶ - valida header x-admin-secret
-   { action, params,            │      - usa SUPABASE_SERVICE_ROLE_KEY
-     x-admin-secret })          │      - chama admin.<rpc>(...)
-                                │      - retorna JSON
+```sql
+if not public.is_staff(auth.uid()) then raise exception 'Acesso negado';
 ```
 
-Nenhuma sessão Supabase Auth é usada. O painel só precisa do shared secret.
+Mesmo chamando com `service_role`, o `auth.uid()` é `NULL` dentro da função → check falha → `Acesso negado`. `service_role` bypassa RLS, mas não bypassa checks explícitos dentro de `SECURITY DEFINER`.
 
-## Passos
+O `admin-proxy` sozinho **não resolve** — a mudança precisa acontecer no SQL do backend principal.
 
-### 1. Edge Function (deploy manual no backend principal `cgsdnvuigolxwzfmnykk`)
+## Opções (escolha uma)
 
-Você vai criar no projeto principal, com `Verify JWT: OFF`, a função `admin-proxy` que:
+### Opção A — Adicionar bypass "service role" nas RPCs (recomendado)
 
-- aceita POST `{ action: string, params: object }`
-- valida header `x-admin-secret` contra a env `ADMIN_PANEL_SECRET`
-- executa `supabase.schema('admin').rpc(action, params)` com service_role
-- whitelist de actions: `kpis_dashboard`, `mrr_serie_12m`, `atividade_recente`, `listar_empresas`, `detalhe_cliente`, `criar_nota_cliente`
-- devolve `{ data, error }`
+No backend principal, alterar a função `public.is_staff(uuid)` (ou o check dentro de cada RPC) para também aceitar quando o chamador é `service_role`:
 
-Eu te entrego o `index.ts` pronto pra colar. Você:
-- cria a função no dashboard do projeto principal
-- adiciona secrets `ADMIN_PANEL_SECRET` (valor forte, aleatório) e confirma que `SUPABASE_SERVICE_ROLE_KEY` já existe
-- deploya
+```sql
+create or replace function public.is_staff(_uid uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select
+    -- bypass: chamadas vindas do service_role (edge functions com shared secret)
+    current_setting('request.jwt.claim.role', true) = 'service_role'
+    or exists (
+      select 1 from admin.usuarios_internos
+      where user_id = _uid and ativo = true
+    );
+$$;
+```
 
-### 2. Configuração no ditt-admin
+Vantagem: uma única alteração destrava todas as 6 RPCs. Nada muda no `admin-proxy` deste projeto.
 
-- Adicionar em `.env`: `VITE_ADMIN_PROXY_URL` e `VITE_ADMIN_PANEL_SECRET` (mesmo valor do backend principal)
-- ⚠️ o secret vai pro bundle JS público — mesma decisão que você já tomou pra `VITE_MASTER_PASSWORD`
+### Opção B — Criar wrappers `admin.*_proxy` sem check de staff
 
-### 3. Client wrapper `src/lib/adminProxy.ts`
+No backend principal, criar 6 novas funções (`kpis_dashboard_proxy`, `listar_empresas_proxy`, ...) idênticas às originais, porém **sem** o `if not is_staff(...)`. Elas ficam ocultas atrás do secret do `admin-proxy`.
 
-Função única `callAdmin(action, params)` que faz `fetch` na edge function com o header do secret e retorna `{ data, error }`.
+Depois, atualizar o `admin-proxy` para chamar as versões `_proxy`. Mais isolado, mas seis funções duplicadas para manter.
 
-### 4. Refazer os hooks
+### Opção C — Assinar JWT de staff dentro do admin-proxy
 
-Substituir chamadas `supabase.schema('admin').rpc(...)` por `callAdmin(...)` em:
-- `src/hooks/useDashboard.ts` (kpis_dashboard, mrr_serie_12m, atividade_recente)
-- `src/hooks/useClientes.ts` (listar_empresas)
-- `src/hooks/useClienteDetalhe.ts` (detalhe_cliente, criar_nota_cliente)
+O `admin-proxy` lê `SUPABASE_JWT_SECRET` do env, gera um JWT com `sub = <uuid do owner>` e `role = authenticated`, e usa esse token no header `Authorization` da chamada RPC. `auth.uid()` passa a valer o uuid do owner e `is_staff` retorna true.
 
-### 5. Limpeza de tokens antigos
+Requer adicionar dependência `jose` na edge e configurar `STAFF_USER_ID` como secret. Mais código, mas não altera SQL.
 
-No `useStaffAuth` (master local) já não usamos Supabase Auth, mas o cliente supabase-js ainda anexa o Bearer JWT antigo do localStorage causando os 401 "unrecognized kid". Vou:
-- remover `persistSession/storageKey` do client supabase-js (não usamos mais Auth) OU limpar `localStorage['ditt-admin-auth']` no boot
-- as chamadas ao proxy ignoram o Supabase JS, então esse ruído some naturalmente
+## Recomendação
 
-## Ordem de execução
+Ir de **Opção A**: mudança mínima, mantém as RPCs originais, o `admin-proxy` continua exatamente como está.
 
-1. Eu escrevo `admin-proxy/index.ts` e te passo pra colar no projeto principal + instruções de secrets
-2. Você deploya e me confirma a URL
-3. Eu atualizo `.env`, adiciono `adminProxy.ts`, e reescrevo os 3 hooks
-4. Validamos `/clientes` mostrando empresas
+## Passos concretos
 
-## Riscos
+1. No projeto do app principal, rodar o SQL da Opção A alterando `public.is_staff`.
+2. Testar aqui novamente — as chamadas via `admin-proxy` devem devolver dados reais.
+3. Se preferir B ou C, me diga qual e eu preparo o código pronto pra colar.
 
-- `VITE_ADMIN_PANEL_SECRET` é público no bundle: qualquer pessoa que baixe o JS do painel consegue chamar a edge function direto. Se o painel ficar exposto na internet aberta isso é equivalente a dar acesso admin ao backend. Aceitável só se o painel ficar atrás de acesso restrito (IP, DNS interno, etc). Se não for o caso, a decisão certa é **A** (Supabase Auth real).
+## Ajuste extra já feito no painel
+
+O `src/lib/adminProxy.ts` agora envia `{ fn, action, params }` — compatível com a versão atualmente deployada no backend principal (que espera `fn`). Isso já foi corrigido; nada mais a fazer no frontend.
