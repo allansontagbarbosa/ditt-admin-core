@@ -20,6 +20,7 @@ export function useKpisDashboard() {
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return p as KpisDashboard & { success: boolean };
     },
+    retry: false,
     staleTime: 60_000,
   });
 }
@@ -32,6 +33,7 @@ export function useAtividadeRecente(limit = 20) {
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return (p.eventos ?? []) as EventoAtividade[];
     },
+    retry: false,
     staleTime: 60_000,
   });
 }
@@ -46,5 +48,6 @@ export function useMrrSerie() {
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return (p.serie ?? []) as SerieMRR[];
     },
+    retry: false,
   });
 }

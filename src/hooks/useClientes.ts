@@ -24,6 +24,7 @@ export function useClientes(status?: string, busca?: string) {
       if (!p?.success) throw new Error(p?.error ?? "Falha");
       return (p.empresas ?? []) as EmpresaCliente[];
     },
+    retry: false,
     staleTime: 30_000,
   });
 }
